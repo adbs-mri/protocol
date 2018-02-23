@@ -18,7 +18,8 @@ function adbs_import_dicom(in_dir, out_dir, log_dir, dcm2niix_dir, bids, gz, pre
 % If default choices are used, each subject's data would be converted to
 % NIfTI and output to the out_dir location. The subejct folders would be
 % automatically created while conversion logs would be written to the log
-% folder (sub-xxxx_log.txt)
+% folder (sub-xxxx_log.txt); additionally a summary file is created in the
+% out_dir (summary_ddmmmyyyy.txt)
 %
 %% Notes:
 % The in_dir should have a folder for each subject; it is assumed that the
@@ -209,6 +210,18 @@ list_subjs = dir('sub-*');
 num_subjs  = length(list_subjs);
 disp([num2str(num_subjs), ' subjects found']);
 
+%% Prepare summary file
+fid_summary = fopen(fullfile(out_dir, ['summary_', datestr(now, 'ddmmmyyyy'), '.txt']), 'w');
+fprintf(fid_summary, '%s\r\n', ['in_dir:       ', in_dir]);
+fprintf(fid_summary, '%s\r\n', ['out_dir:      ', out_dir]);
+fprintf(fid_summary, '%s\r\n', ['log_dir:      ', log_dir]);
+fprintf(fid_summary, '%s\r\n', ['dcm2niix_dir: ', dcm2niix_dir]);
+fprintf(fid_summary, '%s\r\n', ['BIDS:         ', bids]);
+fprintf(fid_summary, '%s\r\n', ['Compressed:   ', gz]);
+fprintf(fid_summary, '%s\r\n', ['Precise:      ', precise]);
+fprintf(fid_summary, '%s\r\n', ['Outname:      ', outname]);
+fprintf(fid_summary, '%s\r\n', [num2str(num_subjs), ' subjects found']);
+
 %% Loop over each subject and convert
 % Move to dcm2niix_dir
 cd(dcm2niix_dir);
@@ -220,6 +233,7 @@ for subj = 1:num_subjs
     % If output directory exists, skip the subject (lazy conversion)
     if exist(sub_out_dir, 'dir')
         disp([list_subjs(subj).name, '...skipped']);
+        fprintf(fid_summary, '%s\r\n', [list_subjs(subj).name, '...skipped']);
         continue
     else
         % Create the framework of the command
@@ -268,11 +282,14 @@ for subj = 1:num_subjs
         % Display summary
         if status
             disp([list_subjs(subj).name, '...error']);
+            fprintf(fid_summary, '%s\r\n', [list_subjs(subj).name, '...error']);
         else
             disp([list_subjs(subj).name, '...finished']);
+            fprintf(fid_summary, '%s\r\n', [list_subjs(subj).name, '...finished']);
         end
     end
 end
+fclose(fid_summary);
 
 % Return to output folder
 cd(out_dir);
