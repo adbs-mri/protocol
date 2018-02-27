@@ -52,8 +52,8 @@ function adbs_acq_param_check(nifti_dir, dicom_dir, out_dir, dcm2niix_dir, acq_c
 %
 % If subjects are skipped, no record is written in the csv file
 %
-% Can be used instead of adbs_dicom_sanity_check 
-% 
+% Can be used instead of adbs_dicom_sanity_check
+%
 %% Default:
 % No defaults; all arguments need to be passed by the user
 %
@@ -221,7 +221,7 @@ else
         subj_info = cell2table(cell(num_subjs, 8));
         subj_info.Properties.VariableNames = ...
             {'subj_ID', 'DICOM_Name', 'DICOM_Age', 'DICOM_Gender', 'TR', 'TE', ...
-        'image_dim', 'voxel_dim'};
+            'image_dim', 'voxel_dim'};
     end
 end
 
@@ -254,193 +254,237 @@ for subj = 1:num_subjs
                     fprintf(fid_summary, '%s\r\n', ...
                         [list_subjs(subj).name, '...T1w json not found']);
                 else
-                    % If multiple files are present, select the first one
+                    % If multiple files are present, update summary, skip
+                    % subject, update table, and move on
                     if length(list_files) > 1
-                        list_files = list_files(1);
-                    end
-                    
-                    % Update summary
-                    disp([list_subjs(subj).name, '...reading ', list_files.name]);
-                    fprintf(fid_summary, '%s',  [list_subjs(subj).name, '...reading ', list_files.name]);
-                    
-                    % Read .json file
-                    fid_json     = fopen(fullfile(nifti_dir, list_subjs(subj).name, list_files.name), 'r');
-                    json_content = textscan(fid_json, '%s');
-                    
-                    % Figure out series number and remove comma at end
-                    loc         = strcmpi(json_content{1,1}, '"SeriesNumber":');
-                    series_num  = json_content{1,1}{find(loc)+1}(1:end-1);
-                    
-                    % Close .json file
-                    fclose(fid_json);
-                    
-                    % Attempt to locate series in DICOM folder
-                    cd(fullfile(dicom_dir, list_subjs(subj).name, 'DICOM'));
-                    
-                    % Get master series folder
-                    tmp = dir('S*');
-                    if length(tmp) > 1
-                        
-                        % Can't proceed; update summary and move on
-                        disp([list_subjs(subj).name, '...multiple master series; cannot proceed']);
-                        fprintf(fid_summary, '%s',   '...multiple master series; cannot proceed');
-                        continue;
+                        disp([list_subjs(subj).name, '...multiple T1 images; skipping']);
+                        fprintf(fid_summary, '%s\r\n', [list_subjs(subj).name, '...multiple T1 images; skipping']);
+                        subj_info.subj_ID{subj}      = list_subjs(subj).name;
+                        subj_info.DICOM_Name{subj}   = 'multiple T1; skipped';
+                        subj_info.DICOM_Age{subj}    = 'multiple T1; skipped';
+                        subj_info.DICOM_Gender{subj} = 'multiple T1; skipped';
+                        subj_info.TR{subj}           = 'multiple T1; skipped';
+                        subj_info.TE{subj}           = 'multiple T1; skipped';
+                        subj_info.image_dim{subj}    = 'multiple T1; skipped';
+                        subj_info.voxel_dim{subj}    = 'multiple T1; skipped';
                     else
-                        cd(tmp.name);
-                        series_loc = dir(['*', series_num, '*']);
-                        if isempty(series_loc)
+                        
+                        % Update summary
+                        disp([list_subjs(subj).name, '...reading ', list_files.name]);
+                        fprintf(fid_summary, '%s',  [list_subjs(subj).name, '...reading ', list_files.name]);
+                        
+                        % Read .json file
+                        fid_json     = fopen(fullfile(nifti_dir, list_subjs(subj).name, list_files.name), 'r');
+                        json_content = textscan(fid_json, '%s');
+                        
+                        % Figure out series number and remove comma at end
+                        loc         = strcmpi(json_content{1,1}, '"SeriesNumber":');
+                        series_num  = json_content{1,1}{find(loc)+1}(1:end-1);
+                        
+                        % Close .json file
+                        fclose(fid_json);
+                        
+                        % Attempt to locate series in DICOM folder
+                        cd(fullfile(dicom_dir, list_subjs(subj).name, 'DICOM'));
+                        
+                        % Get master series folder
+                        tmp = dir('S*');
+                        if length(tmp) > 1
                             
-                            % Can't find series; update summary and move on
-                            disp([list_subjs(subj).name, '...cannot find series ', series_num]);
-                            fprintf(fid_summary, '%s',  ['...cannot find series ', series_num]);
+                            % Can't proceed; update summary and table, and move on
+                            disp([list_subjs(subj).name,   '...multiple master series; cannot proceed']);
+                            fprintf(fid_summary, '%s\r\n', '...multiple master series; cannot proceed');
+                            subj_info.subj_ID{subj}      = list_subjs(subj).name;
+                            subj_info.DICOM_Name{subj}   = 'multiple master series; skipped';
+                            subj_info.DICOM_Age{subj}    = 'multiple master series; skipped';
+                            subj_info.DICOM_Gender{subj} = 'multiple master series; skipped';
+                            subj_info.TR{subj}           = 'multiple master series; skipped';
+                            subj_info.TE{subj}           = 'multiple master series; skipped';
+                            subj_info.image_dim{subj}    = 'multiple master series; skipped';
+                            subj_info.voxel_dim{subj}    = 'multiple master series; skipped';
                             continue;
                         else
-                            % Check if multiple series match the name
-                            if length(series_loc)>1
+                            cd(tmp.name);
+                            series_loc = dir(['*', series_num, '*']);
+                            if isempty(series_loc)
                                 
-                                % Can't proceed; update summary and move on
-                                disp([list_subjs(subj).name, '...multiple series matching ', series_num, ' found; cannot proceed']);
-                                fprintf(fid_summary, '%s',  ['...multiple series matching ', series_num, ' found; cannot proceed']);
+                                % Can't find series; update summary and table, and move on
+                                disp([list_subjs(subj).name, '...cannot find series ', series_num]);
+                                fprintf(fid_summary, '%s\r\n',  ['...cannot find series ', series_num]);
+                                subj_info.subj_ID{subj}      = list_subjs(subj).name;
+                                subj_info.DICOM_Name{subj}   = 'series not found; skipped';
+                                subj_info.DICOM_Age{subj}    = 'series not found; skipped';
+                                subj_info.DICOM_Gender{subj} = 'series not found; skipped';
+                                subj_info.TR{subj}           = 'series not found; skipped';
+                                subj_info.TE{subj}           = 'series not found; skipped';
+                                subj_info.image_dim{subj}    = 'series not found; skipped';
+                                subj_info.voxel_dim{subj}    = 'series not found; skipped';
                                 continue;
                             else
-                                
-                                % Series found; update summary
-                                disp([list_subjs(subj).name, '...found series ', series_num]);
-                                fprintf(fid_summary, '%s', ['...found series ', series_num]);
-                                
-                                % Create the framework of the command
-                                command = ['-b ', bids, ...
-                                    ' -z ', gz, ...
-                                    ' -p ', precise, ...
-                                    ' -t ', text_notes, ...
-                                    ' -n ', series_num, ...
-                                    ' -f ', outname];
-                                
-                                sub_in_dir = fullfile(dicom_dir, list_subjs(subj).name);
-                                
-                                % Adding output directory and input directory to command
-                                command = [command, ' -o ', sub_out_dir, ' ', sub_in_dir];
-                                
-                                % Check OS and add execution method
-                                if isunix
-                                    command = ['./dcm2niix ', command];
-                                else
-                                    command = ['dcm2niix.exe ', command];
-                                end
-                                
-                                % Execute the command
-                                cd(dcm2niix_dir);
-                                [status,~] = system(command);
-                                
-                                % Display summary
-                                if status
-                                    disp([list_subjs(subj).name, '...conversion error']);
-                                    fprintf(fid_summary, '%s',   '...conversion error');
-                                    continue
-                                else
-                                    disp([list_subjs(subj).name, '...conversion finished']);
-                                    fprintf(fid_summary, '%s',   '...conversion finished');
-                                end
-                                
-                                % Go to subject folder and find the text file(s) created
-                                cd(sub_out_dir);
-                                list_files = dir('*.txt');
-                                
-                                % If no files exist, update summary and
-                                % table variable
-                                if isempty(list_files)
-                                    disp([list_subjs(subj).name, '...text file not created']);
-                                    fprintf(fid_summary, '%s\r\n', '...text file not created');
+                                % Check if multiple series match the name
+                                if length(series_loc)>1
+                                    
+                                    % Can't proceed; update summary and table, and move on
+                                    disp([list_subjs(subj).name, '...multiple series matching ', series_num, ' found; cannot proceed']);
+                                    fprintf(fid_summary, '%s\r\n',  ['...multiple series matching ', series_num, ' found; cannot proceed']);
                                     subj_info.subj_ID{subj}      = list_subjs(subj).name;
-                                    subj_info.DICOM_Name{subj}   = 'text file not found';
-                                    subj_info.DICOM_Age{subj}    = 'text file not found';
-                                    subj_info.DICOM_Gender{subj} = 'text file not found';
-                                    subj_info.TR{subj}           = 'text file not found';
-                                    subj_info.TE{subj}           = 'text file not found';
-                                    subj_info.image_dim{subj}    = 'text file not found';
-                                    subj_info.voxel_dim{subj}    = 'text file not found';
+                                    subj_info.DICOM_Name{subj}   = 'multiple matching series; skipped';
+                                    subj_info.DICOM_Age{subj}    = 'multiple matching series; skipped';
+                                    subj_info.DICOM_Gender{subj} = 'multiple matching series; skipped';
+                                    subj_info.TR{subj}           = 'multiple matching series; skipped';
+                                    subj_info.TE{subj}           = 'multiple matching series; skipped';
+                                    subj_info.image_dim{subj}    = 'multiple matching series; skipped';
+                                    subj_info.voxel_dim{subj}    = 'multiple matching series; skipped';
                                     continue;
                                 else
                                     
-                                    % If multiple files are present, select the first one
-                                    if length(list_files) > 1
-                                        list_files = list_files(1);
-                                    end
+                                    % Series found; update summary
+                                    disp([list_subjs(subj).name, '...found series ', series_num]);
+                                    fprintf(fid_summary, '%s', ['...found series ', series_num]);
                                     
-                                    % Update summary
-                                    disp([list_subjs(subj).name, '...reading ', list_files.name]);
-                                    fprintf(fid_summary, '%s',  ['...reading ', list_files.name]);
+                                    % Create the framework of the command
+                                    command = ['-b ', bids, ...
+                                        ' -z ', gz, ...
+                                        ' -p ', precise, ...
+                                        ' -t ', text_notes, ...
+                                        ' -n ', series_num, ...
+                                        ' -f ', outname];
                                     
-                                    % Read text file and get info
-                                    fid_info = fopen(list_files.name, 'r');
-                                    info     = textscan(fid_info, '%s');
+                                    sub_in_dir = fullfile(dicom_dir, list_subjs(subj).name);
                                     
-                                    % Collect info and add to subj_info table
-                                    % Get subj-ID
-                                    subj_info.subj_ID{subj} = list_subjs(subj).name;
+                                    % Adding output directory and input directory to command
+                                    command = [command, ' -o ', sub_out_dir, ' ', sub_in_dir];
                                     
-                                    % Get DICOM_Name
-                                    loc = strcmpi(info{1,1}, 'Name:');
-                                    if isempty(find(loc, 1))
-                                        subj_info.DICOM_Name{subj} = 'Name not found';
+                                    % Check OS and add execution method
+                                    if isunix
+                                        command = ['./dcm2niix ', command];
                                     else
-                                        subj_info.DICOM_Name{subj} = info{1,1}{find(loc)+1};
+                                        command = ['dcm2niix.exe ', command];
                                     end
                                     
-                                    % Get DICOM_Age
-                                    loc = strcmpi(info{1,1}, 'Age:');
-                                    if isempty(find(loc, 1))
-                                        subj_info.DICOM_Age{subj} = 'Age not found';
+                                    % Execute the command
+                                    cd(dcm2niix_dir);
+                                    [status,~] = system(command);
+                                    
+                                    % Display summary
+                                    if status
+                                        disp([list_subjs(subj).name, '...conversion error']);
+                                        fprintf(fid_summary, '%s',   '...conversion error');
+                                        % Update table and move on
+                                        subj_info.subj_ID{subj}      = list_subjs(subj).name;
+                                        subj_info.DICOM_Name{subj}   = 'conversion error; skipped';
+                                        subj_info.DICOM_Age{subj}    = 'conversion error; skipped';
+                                        subj_info.DICOM_Gender{subj} = 'conversion error; skipped';
+                                        subj_info.TR{subj}           = 'conversion error; skipped';
+                                        subj_info.TE{subj}           = 'conversion error; skipped';
+                                        subj_info.image_dim{subj}    = 'conversion error; skipped';
+                                        subj_info.voxel_dim{subj}    = 'conversion error; skipped';
+                                        continue
                                     else
-                                        % Remove leading zero and trailing 'Y' from age
-                                        subj_info.DICOM_Age{subj} = info{1,1}{find(loc)+1}(2:end-1);
+                                        disp([list_subjs(subj).name, '...conversion finished']);
+                                        fprintf(fid_summary, '%s',   '...conversion finished');
                                     end
                                     
-                                    % Get DICOM_Gender
-                                    loc = strcmpi(info{1,1}, 'Gender:');
-                                    if isempty(find(loc, 1))
-                                        subj_info.DICOM_Gender{subj} = 'Gender not found';
+                                    % Go to subject folder and find the text file(s) created
+                                    cd(sub_out_dir);
+                                    list_files = dir('*.txt');
+                                    
+                                    % If no files exist, update summary and
+                                    % table variable
+                                    if isempty(list_files)
+                                        disp([list_subjs(subj).name, '...text file not created']);
+                                        fprintf(fid_summary, '%s\r\n', '...text file not created');
+                                        subj_info.subj_ID{subj}      = list_subjs(subj).name;
+                                        subj_info.DICOM_Name{subj}   = 'text file not found';
+                                        subj_info.DICOM_Age{subj}    = 'text file not found';
+                                        subj_info.DICOM_Gender{subj} = 'text file not found';
+                                        subj_info.TR{subj}           = 'text file not found';
+                                        subj_info.TE{subj}           = 'text file not found';
+                                        subj_info.image_dim{subj}    = 'text file not found';
+                                        subj_info.voxel_dim{subj}    = 'text file not found';
+                                        continue;
                                     else
-                                        % Remove leading zero and trailing 'Y' from age
-                                        subj_info.DICOM_Gender{subj} = info{1,1}{find(loc)+1};
+                                        
+                                        % If multiple files are present, select the first one
+                                        if length(list_files) > 1
+                                            list_files = list_files(1);
+                                        end
+                                        
+                                        % Update summary
+                                        disp([list_subjs(subj).name, '...reading ', list_files.name]);
+                                        fprintf(fid_summary, '%s',  ['...reading ', list_files.name]);
+                                        
+                                        % Read text file and get info
+                                        fid_info = fopen(list_files.name, 'r');
+                                        info     = textscan(fid_info, '%s');
+                                        
+                                        % Collect info and add to subj_info table
+                                        % Get subj-ID
+                                        subj_info.subj_ID{subj} = list_subjs(subj).name;
+                                        
+                                        % Get DICOM_Name
+                                        loc = strcmpi(info{1,1}, 'Name:');
+                                        if isempty(find(loc, 1))
+                                            subj_info.DICOM_Name{subj} = 'Name not found';
+                                        else
+                                            subj_info.DICOM_Name{subj} = info{1,1}{find(loc)+1};
+                                        end
+                                        
+                                        % Get DICOM_Age
+                                        loc = strcmpi(info{1,1}, 'Age:');
+                                        if isempty(find(loc, 1))
+                                            subj_info.DICOM_Age{subj} = 'Age not found';
+                                        else
+                                            % Remove leading zero and trailing 'Y' from age
+                                            subj_info.DICOM_Age{subj} = info{1,1}{find(loc)+1}(2:end-1);
+                                        end
+                                        
+                                        % Get DICOM_Gender
+                                        loc = strcmpi(info{1,1}, 'Gender:');
+                                        if isempty(find(loc, 1))
+                                            subj_info.DICOM_Gender{subj} = 'Gender not found';
+                                        else
+                                            % Remove leading zero and trailing 'Y' from age
+                                            subj_info.DICOM_Gender{subj} = info{1,1}{find(loc)+1};
+                                        end
+                                        
+                                        % Get TR
+                                        loc = strcmpi(info{1,1}, 'TR:');
+                                        if isempty(find(loc, 1))
+                                            subj_info.TR{subj} = 'TR not found';
+                                        else
+                                            subj_info.TR{subj} = info{1,1}{find(loc)+1};
+                                        end
+                                        
+                                        % Get TE
+                                        loc = strcmpi(info{1,1}, 'TE:');
+                                        if isempty(find(loc, 1))
+                                            subj_info.TE{subj} = 'TE not found';
+                                        else
+                                            subj_info.TE{subj} = info{1,1}{find(loc)+1};
+                                        end
+                                        
+                                        % Read same name NIfTI file using SPM
+                                        [~, txt_name, ~] = fileparts(list_files.name);
+                                        header = spm_vol(fullfile(out_dir, list_subjs(subj).name, [txt_name, '.nii']));
+                                        data   = spm_read_vols(header);
+                                        
+                                        % Get image size
+                                        img_size = size(data);
+                                        subj_info.image_dim{subj} = [num2str(img_size(1)), ' x ', num2str(img_size(2)), ' x ', num2str(img_size(3))];
+                                        
+                                        % Get voxel size
+                                        p = spm_imatrix(header.mat);
+                                        vox_size = p(7:9);
+                                        subj_info.voxel_dim{subj} = [num2str(vox_size(1)), ' x ', num2str(vox_size(2)), ' x ', num2str(vox_size(3))];
+                                        
+                                        % Close info file
+                                        fclose(fid_info);
+                                        
+                                        % Update summary
+                                        disp([list_subjs(subj).name, '...done!']);
+                                        fprintf(fid_summary, '%s\r\n', '...done!');
                                     end
-                                    
-                                    % Get TR
-                                    loc = strcmpi(info{1,1}, 'TR:');
-                                    if isempty(find(loc, 1))
-                                        subj_info.TR{subj} = 'TR not found';
-                                    else
-                                        subj_info.TR{subj} = info{1,1}{find(loc)+1};
-                                    end
-                                    
-                                    % Get TE
-                                    loc = strcmpi(info{1,1}, 'TE:');
-                                    if isempty(find(loc, 1))
-                                        subj_info.TE{subj} = 'TE not found';
-                                    else
-                                        subj_info.TE{subj} = info{1,1}{find(loc)+1};
-                                    end
-                                    
-                                    % Read same name NIfTI file using SPM
-                                    [~, txt_name, ~] = fileparts(list_files.name);
-                                    header = spm_vol(fullfile(out_dir, list_subjs(subj).name, [txt_name, '.nii']));
-                                    data   = spm_read_vols(header);
-                                    
-                                    % Get image size
-                                    img_size = size(data);
-                                    subj_info.image_dim{subj} = [num2str(img_size(1)), ' x ', num2str(img_size(2)), ' x ', num2str(img_size(3))];
-                                    
-                                    % Get voxel size
-                                    p = spm_imatrix(header.mat);
-                                    vox_size = p(7:9);
-                                    subj_info.voxel_dim{subj} = [num2str(vox_size(1)), ' x ', num2str(vox_size(2)), ' x ', num2str(vox_size(3))];
-                                    
-                                    % Close info file
-                                    fclose(fid_info);
-                                    
-                                    % Update summary
-                                    disp([list_subjs(subj).name, '...done!']);
-                                    fprintf(fid_summary, '%s\r\n', '...done!');
                                 end
                             end
                         end
@@ -449,10 +493,10 @@ for subj = 1:num_subjs
         end
     end
 end
-
-% Close summary file
-fclose(fid_summary);
-
-% Write csv file
-writetable(subj_info, fullfile(out_dir, ...
-    ['param_check_', acq_catg, '_', datestr(now, 'ddmmmyyyy_HHMMSS'), '.csv']));
+    
+    % Close summary file
+    fclose(fid_summary);
+    
+    % Write csv file
+    writetable(subj_info, fullfile(out_dir, ...
+        ['param_check_', acq_catg, '_', datestr(now, 'ddmmmyyyy_HHMMSS'), '.csv']));
