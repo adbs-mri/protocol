@@ -291,14 +291,14 @@ for subj = 1:num_subjs
                             
                             % Can't find series; update summary and move on
                             disp([list_subjs(subj).name, '...cannot find series ', series_num]);
-                            fprintf(fid_summary, '%s',  ['...cannot find series ', serise_num]);
+                            fprintf(fid_summary, '%s',  ['...cannot find series ', series_num]);
                         else
                             % Check if multiple series match the name
                             if length(series_loc)>1
                                 
                                 % Can't proceed; update summary and move on
                                 disp([list_subjs(subj).name, '...multiple series matching ', series_num, ' found; cannot proceed']);
-                                fprintf(fid_summary, '%s',  ['...multiple series matching ', serise_num, ' found; cannot proceed']);
+                                fprintf(fid_summary, '%s',  ['...multiple series matching ', series_num, ' found; cannot proceed']);
                             else
                                 
                                 % Series found; update summary
