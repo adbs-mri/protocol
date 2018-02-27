@@ -284,6 +284,7 @@ for subj = 1:num_subjs
                         % Can't proceed; update summary and move on
                         disp([list_subjs(subj).name, '...multiple master series; cannot proceed']);
                         fprintf(fid_summary, '%s',   '...multiple master series; cannot proceed');
+                        continue;
                     else
                         cd(tmp.name);
                         series_loc = dir(['*', series_num, '*']);
@@ -292,6 +293,7 @@ for subj = 1:num_subjs
                             % Can't find series; update summary and move on
                             disp([list_subjs(subj).name, '...cannot find series ', series_num]);
                             fprintf(fid_summary, '%s',  ['...cannot find series ', series_num]);
+                            continue;
                         else
                             % Check if multiple series match the name
                             if length(series_loc)>1
@@ -299,6 +301,7 @@ for subj = 1:num_subjs
                                 % Can't proceed; update summary and move on
                                 disp([list_subjs(subj).name, '...multiple series matching ', series_num, ' found; cannot proceed']);
                                 fprintf(fid_summary, '%s',  ['...multiple series matching ', series_num, ' found; cannot proceed']);
+                                continue;
                             else
                                 
                                 % Series found; update summary
@@ -333,6 +336,7 @@ for subj = 1:num_subjs
                                 if status
                                     disp([list_subjs(subj).name, '...conversion error']);
                                     fprintf(fid_summary, '%s',   '...conversion error');
+                                    continue
                                 else
                                     disp([list_subjs(subj).name, '...conversion finished']);
                                     fprintf(fid_summary, '%s',   '...conversion finished');
@@ -347,9 +351,15 @@ for subj = 1:num_subjs
                                 if isempty(list_files)
                                     disp([list_subjs(subj).name, '...text file not created']);
                                     fprintf(fid_summary, '%s\r\n', '...text file not created');
-                                    subj_info.subj_ID{subj} = list_subjs(subj).name;
-                                    subj_info.TR{subj}      = 'text file not found';
-                                    subj_info.TE{subj}      = 'text file not found';
+                                    subj_info.subj_ID{subj}      = list_subjs(subj).name;
+                                    subj_info.DICOM_Name{subj}   = 'text file not found';
+                                    subj_info.DICOM_Age{subj}    = 'text file not found';
+                                    subj_info.DICOM_Gender{subj} = 'text file not found';
+                                    subj_info.TR{subj}           = 'text file not found';
+                                    subj_info.TE{subj}           = 'text file not found';
+                                    subj_info.image_dim{subj}    = 'text file not found';
+                                    subj_info.voxel_dim{subj}    = 'text file not found';
+                                    continue;
                                 else
                                     
                                     % If multiple files are present, select the first one
