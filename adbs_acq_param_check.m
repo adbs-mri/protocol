@@ -267,10 +267,13 @@ for subj = 1:num_subjs
                     % proceed; else update summary, skip subject, update
                     % table, and move on
                     if length(list_files) > 1
+                        count = 1;
                         for ls = 1:length(list_files)
                             if strfind(list_files(ls).name, 'PSIR')
-                                list_files(ls) = [];
+                                loc(count) = ls;
+                                count = count + 1;
                             end
+                            list_files(loc) = [];
                         end
                         % Re-check the number of remaining files
                         if length(list_files) > 1
@@ -511,10 +514,10 @@ for subj = 1:num_subjs
         end
     end
 end
-    
-    % Close summary file
-    fclose(fid_summary);
-    
-    % Write csv file
-    writetable(subj_info, fullfile(out_dir, ...
-        ['param_check_', acq_catg, '_', datestr(now, 'ddmmmyyyy_HHMMSS'), '.csv']));
+
+% Close summary file
+fclose(fid_summary);
+
+% Write csv file
+writetable(subj_info, fullfile(out_dir, ...
+    ['param_check_', acq_catg, '_', datestr(now, 'ddmmmyyyy_HHMMSS'), '.csv']));
