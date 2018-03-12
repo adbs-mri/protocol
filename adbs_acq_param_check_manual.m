@@ -182,25 +182,20 @@ else
             end
         end
     end
-    
-    % Validate and read in_file
-    if ~exist(in_file, 'file')
-        warning([in_file, ' not found']);
-        in_file = uigetfile('*.txt', 'Select file having subject ID and filenames');
-    else
-        % Read the file
-        fid          = fopen(in_file, 'r');
-        to_read_info = textscan(fid, '%s\t%s');
-        % Check for some basic structure
-        % Check number of columns
-        if size(to_read_info,2) ~= 2
-            error('in_file not formatted correctly; <sub_ID> <tab_space> <file_name> required');
-        else
-            % Check if same number of rows exist in both columns
-            if size(to_read_info{1},1) ~= size(to_read_info{2},1)
-                error('Number of entries in both columns do not match');
-            end
-        end
+end
+
+% Validate and read in_file
+% Read the file
+fid          = fopen(in_file, 'r');
+to_read_info = textscan(fid, '%s\t%s');
+% Check for some basic structure
+% Check number of columns
+if size(to_read_info,2) ~= 2
+    error('in_file not formatted correctly; <sub_ID> <tab_space> <file_name> required');
+else
+    % Check if same number of rows exist in both columns
+    if size(to_read_info{1},1) ~= size(to_read_info{2},1)
+        error('Number of entries in both columns do not match');
     end
 end
 
@@ -230,7 +225,6 @@ fprintf(fid_summary, '%s\r\n', ['nifti_dir:    ', nifti_dir]);
 fprintf(fid_summary, '%s\r\n', ['ficom_dir:    ', dicom_dir]);
 fprintf(fid_summary, '%s\r\n', ['out_dir:      ', out_dir]);
 fprintf(fid_summary, '%s\r\n', ['dcm2niix_dir: ', dcm2niix_dir]);
-fprintf(fid_summary, '%s\r\n', ['acq_catg:     ', acq_catg]);
 fprintf(fid_summary, '%s\r\n', ['in_file:      ', in_file]);
 fprintf(fid_summary, '%s\r\n', [num2str(num_subjs), ' subjects found']);
 
@@ -529,4 +523,4 @@ fclose(fid_summary);
 
 % Write csv file
 writetable(subj_info, fullfile(out_dir, ...
-    ['param_check_', acq_catg, '_', datestr(now, 'ddmmmyyyy_HHMMSS'), '.csv']));
+    ['param_check_manual_', datestr(now, 'ddmmmyyyy_HHMMSS'), '.csv']));
