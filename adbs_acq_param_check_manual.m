@@ -93,7 +93,7 @@ if nargin == 0
     warning('Path to dcm2niix not provided');
     dcm2niix_dir = uigetdir(pwd, 'Select directory having dcm2niix');
     warning('File with subject ID and filename should be provided');
-    in_file = uigetfile('*.txt', 'Select file having subject ID and filenames');
+    [in_file, in_path] = uigetfile('*.txt', 'Select file having subject ID and filenames');
 else
     
     % Check if nifti_dir is provided; otherwise prompt
@@ -168,17 +168,17 @@ else
     % Check if in_file is provided
     if ~exist('in_file', 'var')
         warning('File with subject ID and filename should be provided');
-        in_file = uigetfile('*.txt', 'Select file having subject ID and filenames');
+        [in_file, in_path] = uigetfile('*.txt', 'Select file having subject ID and filenames');
     else
         % Check if in_file is empty; if yes, prmopt
         if isempty(in_file)
             warning('File with subject ID and filename should be provided');
-            in_file = uigetfile('*.txt', 'Select file having subject ID and filenames');
+            [in_file, in_path] = uigetfile('*.txt', 'Select file having subject ID and filenames');
         else
             % Check if in_file exists; if not, prompt again
             if ~exist(in_file, 'file')
                 warning([in_file, ' not found']);
-                in_file = uigetfile('*.txt', 'Select file having subject ID and filenames');
+                [in_file, in_path] = uigetfile('*.txt', 'Select file having subject ID and filenames');
             end
         end
     end
@@ -186,6 +186,7 @@ end
 
 % Validate and read in_file
 % Read the file
+in_file      = fullfile(in_path, in_file);
 fid          = fopen(in_file, 'r');
 to_read_info = textscan(fid, '%s\t%s');
 % Check for some basic structure
